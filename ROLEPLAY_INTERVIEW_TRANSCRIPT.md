@@ -1,4 +1,4 @@
-# ROLEPLAY_INTERVIEW_TRANSCRIPT.md: AI Agentic Coding Interview Simulation
+# ROLEPLAY_INTERVIEW_TRANSCRIPT.md: AI Agentic Coding Interview Simulation & Exact Prompt Log
 
 **Setting**: Live 60-Minute System Design & Machine Coding Interview
 **Candidate**: Candidate (You)
@@ -11,7 +11,7 @@
 
 **Interviewer**: Welcome! Today we are building the core engine for a **Cross-Border Account Settlement & Fee Reconciliation Engine**. You have access to Jules and agentic tools. How do you plan to approach this?
 
-**Candidate**: Thanks! Before jumping into code, I want to clarify all core functional requirements to make sure we build the right system:
+**Candidate**: Thanks! Before jumping into code, I want to clarify all core functional requirements:
 1. **FX Rate Protection**: You mentioned users shouldn't be affected by currency rate fluctuations after initiating a transfer. Specifically, if a lower FX rate becomes available within a 10-minute window, the user gets that lower rate. Is that window strict `[T, T + 10m]`?
 2. **Account Safety**: We need safety mapping checks—what validations are expected? (Active accounts, self-transfer blocking, sanctions checks).
 3. **Netting**: Is netting performed per currency pair or across all currencies?
@@ -21,51 +21,52 @@
 
 ---
 
-### [05:00 - 15:00] Phase 2: System Architecture & AGENTS.md Setup
+### [05:00 - 15:00] Phase 2: Agent Sessions & Exact Prompts Log
 
-**Candidate**: I will now write `AGENTS.md` to define explicit boundaries for Jules/AI agents:
-- Tech Stack: Java 21, Spring Boot 3.2, Maven.
-- Precision: Strict `BigDecimal` with `RoundingMode.HALF_UP`.
-- Workflow: Separate Dev and Test sessions. Run `mvn clean test` to verify every change.
+Below are the exact, raw human prompts (crude/realistic as given during fast-paced interview settings) across separate agent sessions:
 
-*(Candidate writes `AGENTS.md` and generates architectural diagram in `INTERVIEW_STRATEGY.md`)*
+#### 🟢 SESSION 1: Core Domain Logic & REST Endpoints (Dev Session)
 
-**Candidate**: Let's review the architectural diagram. Transfers pass through:
-1. `AccountSafetyValidator` (Sanctions, status, self-transfers)
-2. `FXRateService` (Looks up historical window $[T, T+10\text{min}]$ for optimal rate)
-3. `FeeReconciliationEngine` (Tiered fixed + percentage fees)
-4. `PerCurrencyNetSettlementEngine` (Aggregates directional debt pairs by currency).
+> **Candidate Prompt to Agent (Raw/Crude)**:
+> *"hey build the spring boot 3 cross border settlement engine in java 21. make models for Account, TransferRequest, FXRateQuote, ProcessedTransfer, FeeBreakdown, NetDebtObligation. for fx rate, if user transfers at T, find the lowest rate in next 10 mins [T, T+10m] and use that. if same currency return 1. safety check: block self transfer, check account is ACTIVE, block sanctioned countries like PRK, IRN, SYR. fees: flat 2.50 plus 0.5% below 10k or 0.25% above 10k. netting: do pairwise net debt per currency pair. make rest controllers too for accounts, rates, transfers, net-debts."*
 
-**Interviewer**: The architecture is clear and modular. Let's start implementing.
-
----
-
-### [15:00 - 35:00] Phase 3: Agentic Prompting, Coding & Critical Review
-
-**Candidate**: I will instruct Jules to implement the domain models, services, and REST controllers.
-
-*(Candidate prompts agent with clear domain specs)*
-
-**Candidate (Reviewing Agent Output)**:
-Let's inspect what Jules generated:
-- In `FXRateService.java`, Jules used `ConcurrentHashMap` for rate quotes and implemented the 10-minute minimum rate filter:
+**Candidate (Reviewing Session 1 Output)**:
+"Let's inspect what Jules generated from this prompt:
+- In `FXRateService.java`, the 10-minute lower rate selection logic uses stream `.filter()` and `.min()`:
   ```java
   Optional<BigDecimal> minRate = quotes.stream()
       .filter(q -> !q.timestamp().isBefore(requestTime) && !q.timestamp().isAfter(windowEnd))
       .map(FXRateQuote::rate)
       .min(Comparator.naturalOrder());
   ```
-- In `PerCurrencyNetSettlementEngine.java`, canonical account pair keys (`acc1:acc2`) are used to prevent duplicate opposite entries ($A \to B$ vs $B \to A$).
-
-**Interviewer**: Good catch reviewing the key normalization in netting. How do you handle cases where no rate quote exists in the future window?
-
-**Candidate**: The fallback logic checks for the most recent rate quote recorded prior to `requestTime`. If none exists at all, it throws a domain exception (`IllegalStateException`) which gets handled by our `@RestControllerAdvice`.
+- In `PerCurrencyNetSettlementEngine.java`, canonical account pair keys (`acc1:acc2`) are used so opposing transfers ($A \to B$ vs $B \to A$) cancel each other out correctly.
+- All amounts use `BigDecimal` with scale and `RoundingMode.HALF_UP` as specified in `AGENTS.md`."
 
 ---
 
-### [35:00 - 50:00] Phase 4: Testing, Verification & Debugging
+#### 🧪 SESSION 2: Testing & Edge Cases (Test Session)
 
-**Candidate**: Now let's verify everything using unit tests. I will run the test suite via the terminal:
+> **Candidate Prompt to Agent (Raw/Crude)**:
+> *"open test session now. write unit tests for FXRateService, AccountSafetyValidator, and NetSettlementAndFeeEngine. test cases needed: same currency rate = 1, lowest rate selection inside 10 min window (add quotes at T, T+3m lower, T+7m higher, T+15m out of window), self transfer fails, inactive account fails, sanctioned country PRK fails, fee tiers below and above 10k, and per currency pairwise netting where A sends 1000 USD to B and B sends 400 USD to A (net should be A owes B 600 USD). run mvn test and make sure everything passes."*
+
+**Candidate (Reviewing Session 2 Output)**:
+"Jules created `FXRateServiceTest`, `AccountSafetyValidatorTest`, and `NetSettlementAndFeeEngineTest` covering all requested scenario matrices. Running `mvn test` shows 10/10 tests passed in 5.3s."
+
+---
+
+#### 🔧 SESSION 3: Exception Handling & Edge Refinement (Refinement Session)
+
+> **Candidate Prompt to Agent (Raw/Crude)**:
+> *"add GlobalExceptionHandler for DomainValidationException (returns 400) and IllegalStateException (returns 422). make sure controller responses return proper json error body with timestamp and message. run mvn test again."*
+
+**Candidate (Reviewing Session 3 Output)**:
+"The exception handler was added smoothly and all unit/integration tests remain 100% green."
+
+---
+
+### [35:00 - 50:00] Phase 3: Terminal Verification & Test Execution
+
+**Candidate**: Let's run the full test suite in the terminal to verify build stability:
 
 ```bash
 $ mvn clean test
@@ -78,19 +79,13 @@ $ mvn clean test
 [INFO] BUILD SUCCESS (10 tests run, 0 failures)
 ```
 
-**Candidate**: All 10 tests passed cleanly. We verified:
-1. Exact 10-minute boundary lookups for FX rates.
-2. Rejection of self-transfers, blocked accounts, and sanctioned jurisdictions (e.g., North Korea).
-3. Tier 1 vs Tier 2 fee calculations.
-4. Multilateral pairwise net balance calculations per currency.
-
 ---
 
-### [50:00 - 60:00] Phase 5: Wrap-up & Lessons Learned
+### [50:00 - 60:00] Phase 4: Interviewer Q&A & Key Takeaways
 
-**Interviewer**: Outstanding demonstration! You used the AI agent as a high-speed accelerator while maintaining critical oversight, verifying code, and enforcing testing discipline.
+**Interviewer**: Excellent! The inclusion of exact prompt logs across separated sessions shows a clear strategy for directing AI agents under interview time pressure.
 
-**Key Takeaways for Candidate**:
-1. **Never accept agent code blindly**: Review domain logic, scale/rounding, and edge cases.
-2. **Use AGENTS.md for steering**: Setting rules up front prevents AI hallucination or unwanted refactoring.
-3. **Verify with automated tests**: Running `mvn test` proves correctness without manual trial and error.
+**Key Prompting Strategies for AI-Assisted Interviews**:
+1. **Crude Prompts Work with AGENTS.md**: You don't need perfect grammar when `AGENTS.md` already defines coding standards, packages, and rounding rules.
+2. **Session Isolation**: Keep Dev and Test prompts in separate sessions or logical steps so the agent doesn't write mock tests that pass flawed implementation logic.
+3. **Explicit Edge Cases**: List explicit numbers in your test prompts (e.g., "A sends 1000, B sends 400, net = 600") so the agent builds exact assertions.
