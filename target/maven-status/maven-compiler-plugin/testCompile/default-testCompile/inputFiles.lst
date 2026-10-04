@@ -1,0 +1,4 @@
+/app/src/test/java/com/settlement/service/AccountSafetyValidatorTest.java
+/app/src/test/java/com/settlement/service/NetSettlementAndFeeEngineTest.java
+/app/src/test/java/com/settlement/service/FXRateServiceTest.java
+/app/src/test/java/com/settlement/SettlementEngineApplicationTests.java
